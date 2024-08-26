@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск груза</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 300px; /* Высота панели в свернутом виде */
+            background-color: white;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            transform: translateY(100%); /* Панель скрыта */
+        }
+        .panel.open {
+            transform: translateY(0); /* Панель раскрыта */
+            height: 80vh; /* Увеличенная высота при раскрытии */
+        }
+        .panel .drag-handle {
+            width: 40px;
+            height: 5px;
+            background-color: #ccc;
+            border-radius: 2.5px;
+            margin: 10px auto;
+            cursor: pointer;
+        }
+        .panel .content {
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="panel" id="panel">
+        <div class="drag-handle"></div>
+        <div class="content">
+            <div class="slider">
+                <label for="loadRadius">Радиус загрузки:</label>
+                <input type="range" id="loadRadius" min="1" max="500" value="200">
+                <span id="loadValue">200 км</span>
+            </div>
+            <div class="slider">
+                <label for="unloadRadius">Радиус выгрузки:</label>
+                <input type="range" id="unloadRadius" min="1" max="10000" value="5000">
+                <span id="unloadValue">5000 км</span>
+            </div>
+            <div class="buttons">
+                <button id="premiumButton">Премиум</button>
+                <button id="luxButton">Люкс</button>
+                <button id="prestigeButton">Престиж</button>
+            </div>
+            <p id="subscriptionInfo">Выберите подписку, чтобы увидеть её описание.</p>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Инициализация карты
+        var map = L.map('map').setView([51.505, -0.09], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        var circleLoad, circleUnload;
+
+        // Получение текущего местоположения пользователя
+        map.locate({setView: true, maxZoom: 16});
+
+        function onLocationFound(e) {
+            var loadRadius = 200; // начальный радиус загрузки
+            var unloadRadius = 5000; // начальный радиус выгрузки
+
+            circleLoad = L.circle(e.latlng, loadRadius * 1000, { color: 'red' }).addTo(map);
+            circleUnload = L.circle(e.latlng, unloadRadius * 1000, { color: 'green' }).addTo(map);
+
+            // Обновление радиуса кругов по значению ползунков
+            document.getElementById('loadRadius').oninput = function() {
+                var loadRadiusValue = document.getElementById('loadRadius').value;
+                circleLoad.setRadius(loadRadiusValue * 1000);
+                document.getElementById('loadValue').textContent = loadRadiusValue + ' км';
+            };
+
+            document.getElementById('unloadRadius').oninput = function() {
+                var unloadRadiusValue = document.getElementById('unloadRadius').value;
+                circleUnload.setRadius(unloadRadiusValue * 1000);
+                document.getElementById('unloadValue').textContent = unloadRadiusValue + ' км';
+            };
+        }
+
+        map.on('locationfound', onLocationFound);
+
+        function onLocationError(e) {
+            alert(e.message);
+        }
+
+        map.on('locationerror', onLocationError);
+
+        // Функция для раскрытия и скрытия панели
+        var panel = document.getElementById('panel');
+        var isOpen = false;
+        
+        panel.querySelector('.drag-handle').onclick = function() {
+            if (isOpen) {
+                panel.classList.remove('open');
+            } else {
+                panel.classList.add('open');
+            }
+            isOpen = !isOpen;
+        };
+
+        // Обработчики кнопок подписок
+        document.getElementById('premiumButton').onclick = function() {
+            document.getElementById('subscriptionInfo').textContent = 
+                "Премиум: Непроверенные грузы, которые публикуют непроверенные грузовладельцы.";
+        };
+
+        document.getElementById('luxButton').onclick = function() {
+            document.getElementById('subscriptionInfo').textContent = 
+                "Люкс: Проверенные грузы, где грузовладельцы оплачивают доставку вовремя.";
+        };
+
+        document.getElementById('prestigeButton').onclick = function() {
+            document.getElementById('subscriptionInfo').textContent = 
+                "Престиж: Международные грузы.";
+        };
+    </script>
+</body>
+</html>
